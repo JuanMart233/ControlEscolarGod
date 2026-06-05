@@ -16,6 +16,8 @@ try:
 except Exception as ex:
     print(f"No se pudo cargar imagen de fondo: {ex}")
 
+    foto = ft.Image(src=f"data:image/webp;base64,{BG_B64}", fit=ft.ImageFit.COVER) if BG_B64 else None
+
 
 def _fondo(page: ft.Page, content: ft.Control) -> ft.Container:
     return ft.Container(

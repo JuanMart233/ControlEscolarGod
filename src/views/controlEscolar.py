@@ -206,7 +206,7 @@ def main(page: ft.Page):
             snack("Usuario registrado. Inicia sesión")
         page.add(build_registro(page, on_success=on_ok, on_login=mostrar_login))
 
-    #DASHBOARD
+    #DASHBOARD god
     def mostrar_dashboard():
         alumno  = session["alumno"]
         usuario = session["usuario"]
