@@ -241,13 +241,20 @@ def main(page: ft.Page):
             prom_txt.value = f"{promedio_general(alumno['id_alumno']):.2f}"
             page.update()
 
-        sem_dd   = ft.Dropdown(
+        sem_dd = ft.Dropdown(
             label="Semestre",
             width=160,
             value=selected_sem,
             options=[ft.dropdown.Option(key=s, text=s) for s in SEMESTRES],
         )
-        sem_dd.on_change = cargar
+
+        btn_actualizar = ft.ElevatedButton(
+            "Actualizar",
+            icon=ft.Icons.REFRESH,
+            on_click=cargar,
+            bgcolor=ft.Colors.BLUE_700,
+            color=ft.Colors.WHITE,
+        )
 
         content = ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
             ft.Container(padding=16, content=ft.Column([
@@ -269,7 +276,10 @@ def main(page: ft.Page):
                 ft.Divider(color=ft.Colors.WHITE24),
                 ft.Row([
                     ft.Text("Por semestre:", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
-                    sem_dd
+                    ft.Row([
+                        sem_dd,
+                        btn_actualizar
+                    ])
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 lista,
                 ft.Container(height=8),
@@ -284,7 +294,7 @@ def main(page: ft.Page):
         set_view(content, make_appbar("Dashboard"))
         cargar()
 
-    # ── PERFIL ────────────────────────────────────────────────────────────────
+    # ── PERFIL 
     def mostrar_perfil():
         alumno = session["alumno"] or {}
 
@@ -352,7 +362,7 @@ def main(page: ft.Page):
             title=ft.Text("Mi Perfil"), bgcolor=ft.Colors.BLUE_800, color=ft.Colors.WHITE,
         ))
 
-    # ── CALIFICACIONES ────────────────────────────────────────────────────────
+    # ── CALIFICACIONES
     def mostrar_calificaciones():
         alumno  = session["alumno"]
         usuario = session["usuario"]
@@ -474,13 +484,117 @@ def main(page: ft.Page):
                 prom_lbl.color = ft.Colors.WHITE
             page.update()
 
-        sem_dd    = ft.Dropdown(
+        sem_dd = ft.Dropdown(
             label="Semestre",
             width=140,
             value=selected_sem,
             options=[ft.dropdown.Option(key=s, text=s) for s in SEMESTRES],
         )
-        sem_dd.on_change = cargar
+
+        btn_actualizar = ft.ElevatedButton(
+            "Actualizar",
+            icon=ft.Icons.REFRESH,
+            on_click=cargar,
+            bgcolor=ft.Colors.BLUE_700,
+            color=ft.Colors.WHITE,
+        )
+
+
+        def mostrar_historial(e=None):
+            promedio_gral = promedio_general(alumno["id_alumno"])
+
+            contenido = [
+                ft.Text(
+                    f"Promedio General: {promedio_gral:.2f}",
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                    color=ft.Colors.GREEN_400 if promedio_gral >= 6 else ft.Colors.RED_400
+                ),
+                ft.Divider()
+            ]
+
+            for semestre in range(1, 7):
+                califs = obtener_calificaciones(alumno["id_alumno"], semestre)
+
+                promedios = [
+                    float(c["promedio"])
+                    for c in califs
+                    if c.get("promedio") is not None
+                ]
+
+                promedio_sem = sum(promedios) / len(promedios) if promedios else 0
+
+                contenido.append(
+                    ft.Container(
+                        padding=10,
+                        border=ft.Border(
+                            left=ft.BorderSide(1, ft.Colors.WHITE24),
+                            top=ft.BorderSide(1, ft.Colors.WHITE24),
+                            right=ft.BorderSide(1, ft.Colors.WHITE24),
+                            bottom=ft.BorderSide(1, ft.Colors.WHITE24),
+                        ),
+                        border_radius=10,
+                        margin=ft.Margin(left=0, top=0, right=0, bottom=10),
+                        content=ft.Column([
+                            ft.Row(
+                                [
+                                    ft.Text(
+                                        f"Semestre {semestre}",
+                                        weight=ft.FontWeight.BOLD,
+                                        size=16,
+                                        color=ft.Colors.WHITE
+                                    ),
+                                    ft.Text(
+                                        f"Promedio: {promedio_sem:.2f}",
+                                        weight=ft.FontWeight.BOLD,
+                                        color=ft.Colors.GREEN_400 if promedio_sem >= 6 else ft.Colors.RED_400
+                                    )
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                            ),
+                            *[
+                                ft.Row(
+                                    [
+                                        ft.Text(c["nombre_materia"], expand=True, color=ft.Colors.WHITE),
+                                        ft.Text(
+                                            f"{float(c['promedio']):.2f}" if c.get("promedio") is not None else "—",
+                                            color=ft.Colors.WHITE70
+                                        )
+                                    ]
+                                )
+                                for c in califs
+                            ]
+                        ])
+                    )
+                )
+
+            dlg = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Historial Académico"),
+                content=ft.Container(
+                    width=700,
+                    height=500,
+                    content=ft.Column(
+                        controls=contenido,
+                        scroll=ft.ScrollMode.AUTO
+                    )
+                ),
+                actions=[
+                    ft.TextButton(
+                        "Cerrar",
+                        on_click=lambda e: cerrar_historial()
+                    )
+                ]
+            )
+
+            def cerrar_historial():
+                dlg.open = False
+                page.update()
+
+            page.overlay.append(dlg)
+            dlg.open = True
+            page.update()
+
 
         def borrar_materia(id_materia):
             dlg = ft.AlertDialog(
@@ -526,7 +640,11 @@ def main(page: ft.Page):
 
         content = ft.Column(scroll=ft.ScrollMode.AUTO, controls=[
             ft.Container(padding=16, content=ft.Column([
-                ft.Row([ft.Text("Semestre:", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE), sem_dd]),
+                ft.Row([
+                    ft.Text("Semestre:", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                    sem_dd,
+                    btn_actualizar
+                ]),
                 ft.Container(height=6),
                 ft.Row([progreso_txt], alignment=ft.MainAxisAlignment.START),
                 barra_sem,
@@ -538,6 +656,13 @@ def main(page: ft.Page):
                 ft.Divider(color=ft.Colors.WHITE24),
                 tabla,
                 ft.Divider(color=ft.Colors.WHITE24),
+                ft.ElevatedButton(
+                    "Historial",
+                    icon=ft.Icons.HISTORY,
+                    on_click=mostrar_historial,
+                    bgcolor=ft.Colors.PURPLE_700,
+                    color=ft.Colors.WHITE,
+                ),
                 prom_lbl,
             ]))
         ])
